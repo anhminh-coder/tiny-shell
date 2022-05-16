@@ -101,39 +101,3 @@ int StopBgProcess(DWORD process_id)
 BOOL ResumeBgProcess(){
 
 }
-
-void ShowDate()
-{
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-    printf("%02d-%02d-%d\n",tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
-}
-
-void ShowTime()
-{
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-    printf("%02d:%02d:%02d\n",tm.tm_hour, tm.tm_min, tm.tm_sec);
-}
-
-//BOOL GetProcessListAll(char *args,DWORD pid)
-//{
-//	printf("%-50s%-20s\n", "Process Name", "Process ID");
-//	printf("%-50s%-20s\n", "----------------------------------", "----------");
-//	printf("%-50s%-20d%\n", pe32.szExeFile, pe32.th32ProcessID);
-//	return(TRUE);
-//}
-
-BOOL ShowHelp(){
-    printf("\t\t\nHelp");
-    printf("\t\nhelp: Show help");
-    printf("\t\ndate: Show date");
-    printf("\t\ntime: Show time");
-    printf("\t\n -bg: Create process in background mode");
-    printf("\t\n -fg: Create process in foreground mode");
-    printf("\t\nlist: Show the list of process");
-    printf("\t\nkill: Terminate a process");
-    printf("\t\nstop: Stop a process");
-    printf("\n\n");
-}
-

@@ -63,19 +63,6 @@ int excute(char **args){
     return 1;
 }
 // void AnalysisCommand(char **args){
-//     if(!strcmp(args[0],"help")){
-//         help(args);
-//     }
-//     /*
-//     else if(!strcmp(args[0],"exit")){
-//         exit(0);
-//     }*/
-// 	else if(!strcmp(args[0],"date")){
-//         ShowDate();
-//     }
-// 	else if(!strcmp(args[0],"time")){
-//         ShowTime();
-//     }
 //     else if(!strcmp(args[0],"-bg") || !strcmp(args[0],"-fg")){
 //        	DWORD pid = CreateAProcess(args);
 //        	string s(args[1]);
