@@ -1,18 +1,19 @@
 #include<stdio.h>
 #include<windows.h>
-
+#include "process.h"
 int help(char **args);
 int exit(char **args);
 int path(char **args);
 int date(char **args);
 int time(char **args);
 int dir(char **args);
+int pc(char **args);
 int list_path();
 int add_path(char **args);
 int num_builtins();
 
-int (*builtin_func[]) (char **args) = { &help, &exit, &path, &date, &time, &dir};
-char *builtin_str[] = {"help", "exit", "path", "date", "time", "dir"};
+int (*builtin_func[]) (char **args) = {&pc, &path, &date, &time, &dir, &help, &exit};
+char *builtin_str[] = {"pc", "path", "date", "time", "dir", "help", "exit"};
 int num_builtins(){
     return sizeof(builtin_str)/sizeof(char *);
 }
@@ -108,7 +109,9 @@ int list_path(){
 }
 int add_path(char **args){
     LPSTR lp_name, lp_value;
-    if(args[2] != NULL && args[3] != NULL){
+    if(args[2] == NULL || args[3] == NULL || args[4] != NULL){
+        printf(" path -add <name> <value>\n");
+    }else {
         lp_name = args[2];
         lp_value = args[3];
         if(SetEnvironmentVariable(lp_name, lp_value)){
@@ -118,8 +121,29 @@ int add_path(char **args){
         }else{
             printf(" error\n");
         }
-    }else{
-        printf("too few args\n");
+    }
+    return 1;
+}
+int pc(char **args){
+    if(args[1] == NULL){
+        printf("too few args.\n");
+        return 1;
+    }
+    if (strcmp(args[1], "-fg") == 0 || strcmp(args[1], "-bg") == 0){
+        DWORD pid = createProcess(args);
+        if(pid == -1){
+            printf(" can't create new process.\n");
+        }
+    }else if(strcmp(args[1], "-all")){
+        listAllProcess(args)
+    }else if(strcmp(args[1], "-child")){
+        listChildProcess(args);
+    }else if(strcmp(args[1], "-kill")){
+        killProcess(args);
+    }else if(strcmp(args[1], "-stop")){
+        stopProcess(args);
+    }else if(strcmp(args[1], "-resume")){
+        resumeProcess(args);
     }
     return 1;
 }

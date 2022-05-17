@@ -1,4 +1,4 @@
 # tiny-shell
 ```
-g++ shell.c analysis.cpp -o shell
+g++ shell.c -o shell
 ./shell
