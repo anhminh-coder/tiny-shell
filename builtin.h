@@ -1,18 +1,21 @@
 #include<stdio.h>
 #include<windows.h>
 #include "process.h"
+
+int pc_op(char *pid, int (*op)(DWORD pid));
 int help(char **args);
-int exit(char **args);
+int fexit(char **args);
 int path(char **args);
 int date(char **args);
-int time(char **args);
+int ftime(char **args);
 int dir(char **args);
 int pc(char **args);
 int list_path();
 int add_path(char **args);
 int num_builtins();
 
-int (*builtin_func[]) (char **args) = {&pc, &path, &date, &time, &dir, &help, &exit};
+
+int (*builtin_func[]) (char **args) = {&pc, &path, &date, &ftime, &dir, &help, &fexit};
 char *builtin_str[] = {"pc", "path", "date", "time", "dir", "help", "exit"};
 int num_builtins(){
     return sizeof(builtin_str)/sizeof(char *);
@@ -29,7 +32,7 @@ int date(char **args){
     }
     return 1;
 }
-int time(char **args){
+int ftime(char **args){
     if(args[1]!=NULL){
         printf("no option for time command.\n");
     }else{
@@ -60,7 +63,8 @@ int dir(char **args){
         }
 	}
     return 1;
-}int path(char **args){
+}
+int path(char **args){
     if(args[1] == NULL){
         printf("too few args.\n");
         return 1;
@@ -72,8 +76,7 @@ int dir(char **args){
     }
     return 1;
 }
-
-int exit(char **args){
+int fexit(char **args){
     if(args[1]!=NULL){
         printf("no option for exit command.\n");
         return 1;
@@ -124,26 +127,55 @@ int add_path(char **args){
     }
     return 1;
 }
+
+int pc_op(char *pid, int (*op)(DWORD pid)){
+    for(int i=0;i<strlen(pid);i++){
+        if((pid[i]<'0' || pid[i]>'9'))
+            return -2;
+    }
+    int _pid = atoi(pid);
+    if(_pid < 0)
+        return -1;
+    return op((DWORD)_pid);
+}
+
 int pc(char **args){
+    int flag;
+    char *op = (char *)malloc(15);
     if(args[1] == NULL){
-        printf("too few args.\n");
+        printf(" too few args\n");
         return 1;
     }
-    if (strcmp(args[1], "-fg") == 0 || strcmp(args[1], "-bg") == 0){
-        DWORD pid = createProcess(args);
-        if(pid == -1){
-            printf(" can't create new process.\n");
-        }
-    }else if(strcmp(args[1], "-all")){
-        listAllProcess(args)
-    }else if(strcmp(args[1], "-child")){
-        listChildProcess(args);
-    }else if(strcmp(args[1], "-kill")){
-        killProcess(args);
-    }else if(strcmp(args[1], "-stop")){
-        stopProcess(args);
-    }else if(strcmp(args[1], "-resume")){
-        resumeProcess(args);
-    }
+    if(args[2] == NULL){
+        if(strcmp(args[1], "-all") == 0){
+            if(listAllProcess() == -1){
+                printf(" can't get any process\n");
+            }
+        }else printf(" syntax error\n");
+    } else if(args[3] == NULL && args[2] != NULL){
+        if(strcmp(args[1], "-child") == 0){
+            flag = pc_op(args[2], listChildProcess);
+            strcpy(op, "get child");
+        }else if(strcmp(args[1], "-kill") == 0){
+            flag = pc_op(args[2], killBgProcess);
+            strcpy(op, "kill");
+        }else if(strcmp(args[1], "-stop") == 0){
+            flag = pc_op(args[2], stopBgProcess);
+            strcpy(op, "stop");
+        }else if(strcmp(args[1], "-resume") == 0){
+            flag = pc_op(args[2], resumeBgProcess);
+            strcpy(op, "resume");
+        }else if (strcmp(args[1], "-fg") == 0 || strcmp(args[1], "-bg") == 0){
+            DWORD pid = createProcess(args);
+            if(pid == -1){
+               printf(" can't create new process\n");
+            }
+        }   
+        if(flag == -1)
+            printf(" can't %s process of process %d\n", op, atoi(args[2]));
+        else if(flag == -2) 
+            printf(" pid is type of USIGNED INT\n");
+        
+    }else printf(" syntax error\n");
     return 1;
 }

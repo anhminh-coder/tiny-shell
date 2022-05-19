@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <bits/stdc++.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -11,20 +10,52 @@
 #include <sys/types.h>
 
 DWORD createProcess(char **args);
-int killProcessID(DWORD process_id);
-int StopBgProcess(DWORD process_id);
-BOOL ResumeBgProcess();
-BOOL GetProcessListAll(char *args,DWORD pid);
+BOOL resumeBgProcess();
 
-using namespace std;
+int listAllProcess();
+int listChildProcess(DWORD pid);
+int killBgProcess(DWORD pid);
+int stopBgProcess(DWORD pid);
+
+int listAllProcess(){
+	HANDLE hProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	PROCESSENTRY32 processEntry;
+	processEntry.dwSize = sizeof(PROCESSENTRY32);
+	if(!Process32First(hProcessSnapshot,&processEntry))	
+	{
+		return -1;
+	}
+	
+	printf(" %-15s %s\n", "[Process ID]", "[Process Name]");  
+    do{
+    	printf(" %-15d %s\n", processEntry.th32ProcessID, processEntry.szExeFile);
+    }while (Process32Next(hProcessSnapshot, &processEntry));
+    CloseHandle(hProcessSnapshot);
+	return 1;
+}
+int listChildProcess(DWORD pid){ // pc -child parentId
+	HANDLE hProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	PROCESSENTRY32 processEntry;
+	processEntry.dwSize = sizeof(PROCESSENTRY32);
+	if(!Process32First(hProcessSnapshot,&processEntry))	return -1;
+
+    printf(" %-15s %s\n", "[Process ID]", "[Process Name]");  
+    do{
+        if(processEntry.th32ParentProcessID == pid)
+    	 printf(" %-15d %s\n", processEntry.th32ProcessID, processEntry.szExeFile);
+    }while (Process32Next(hProcessSnapshot, &processEntry));
+    
+    CloseHandle(hProcessSnapshot);
+	return 1;
+}
 
 DWORD createProcess(char **args)
 {
     DWORD waitTime;
-    if(strcmp(args[1],"-bg")){
-        waitTime = INFINITE;
-    }else if(strcmp(args[1],"-fg")){
+    if(strcmp(args[1],"-bg") == 0){
         waitTime = 0;
+    }else if(strcmp(args[1],"-fg") == 0){
+        waitTime = INFINITE;
     }
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
@@ -35,44 +66,29 @@ DWORD createProcess(char **args)
     }
     DWORD tmp = pi.dwProcessId;
     WaitForSingleObject(pi.hProcess,waitTime);
-    //TerminateProcess(pi.hProcess, 0);
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
     return tmp;
 }
 
-int killProcessID(DWORD process_id) {
-    HANDLE hprocess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, process_id);
-    if (hprocess == NULL){
-        cout << "ERROR: Failed!" << endl;
-        return 1;
-    }
-    if (!TerminateProcess(hprocess, 0)) {
-        return 0;
-    }
-    CloseHandle(hprocess);
+int killBgProcess(DWORD pid) {
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    if (!TerminateProcess(hProcess, 0) || hProcess == NULL) return -1;
+    CloseHandle(hProcess);
     return 1;
 }
 
-int StopBgProcess(DWORD process_id)
-	{
+int stopBgProcess(DWORD pid){
     HANDLE hThreadSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
     THREADENTRY32 threadEntry; 
     threadEntry.dwSize = sizeof(THREADENTRY32);
-    if (!Thread32First(hThreadSnapshot, &threadEntry)) 
-	{
-		cout << "Thread32First Fail " <<  GetLastError(); 
+    if (!Thread32First(hThreadSnapshot, &threadEntry)){ 
 		CloseHandle(hThreadSnapshot);          
-		return 0;
+		return -1;
     }
-
-    do
-    {
-        if (threadEntry.th32OwnerProcessID == process_id)
-        {
-            HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE,
-                threadEntry.th32ThreadID);
-            
+    do{
+        if (threadEntry.th32OwnerProcessID == pid){
+            HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, threadEntry.th32ThreadID);
             SuspendThread(hThread);
             CloseHandle(hThread);
         }
@@ -81,9 +97,22 @@ int StopBgProcess(DWORD process_id)
     CloseHandle(hThreadSnapshot);
     return 1;
 }
+int resumeBgProcess(DWORD pid){
+    HANDLE hThreadSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    THREADENTRY32 threadEntry; 
+    threadEntry.dwSize = sizeof(THREADENTRY32);
+    if (!Thread32First(hThreadSnapshot, &threadEntry)){ 
+		CloseHandle(hThreadSnapshot);          
+		return -1;
+    }
+    do{
+        if (threadEntry.th32OwnerProcessID == pid){
+            HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, threadEntry.th32ThreadID);
+            if(!ResumeThread(hThread)) return -1;
+        }
+    } while (Thread32Next(hThreadSnapshot, &threadEntry));
 
-
-BOOL ResumeBgProcess(){
-
+    CloseHandle(hThreadSnapshot);
+    return 1;
 }
 

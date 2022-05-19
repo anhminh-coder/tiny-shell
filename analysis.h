@@ -1,4 +1,3 @@
-#include <bits/stdc++.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -14,10 +13,6 @@ char **split_line(char *line);
 int excute(char **args);
 
 void AnalysisCommand(char **args);
-
-// using namespace std;
-// vector<pair<string,DWORD>> v;
-// int pos = 0;
 
 char *read_line(){
     int buffer_size = 32;
@@ -52,7 +47,7 @@ char **split_line(char *line){
         index++;
         args = (char **)realloc(args, sizeof(char *)*(index+1));
         if(!args){
-            exit(1);
+            return NULL;
         }
     }
     args[index] = NULL;

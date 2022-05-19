@@ -1,4 +1,5 @@
 # tiny-shell
 ```
-g++ shell.c -o shell
+gcc shell.c -o shell
 ./shell
+
