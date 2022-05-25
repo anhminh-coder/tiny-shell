@@ -9,9 +9,9 @@
 #include <tlhelp32.h>
 #include <sys/types.h>
 
+DWORD inputHandleThread();
 DWORD createProcess(char **args);
-BOOL resumeBgProcess();
-
+int resumeBgProcess();
 int listAllProcess();
 int listChildProcess(DWORD pid);
 int killBgProcess(DWORD pid);
@@ -64,11 +64,21 @@ DWORD createProcess(char **args)
     if(!CreateProcess(NULL, args[2], NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi)){
         return -1;
     }
-    DWORD tmp = pi.dwProcessId;
-    WaitForSingleObject(pi.hProcess,waitTime);
+    DWORD pid = pi.dwProcessId;
+    if(strcmp(args[1],"-bg") == 0){
+        WaitForSingleObject(pi.hProcess, 0);
+    }
+    else if(strcmp(args[1],"-fg") == 0){
+        DWORD id;
+        HANDLE handles[2];
+        handles[0] = pi.hProcess;
+        handles[1] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)inputHandleThread, NULL, 0, &id);
+        WaitForMultipleObjects(2, handles, FALSE, INFINITE);
+        killBgProcess(pid);
+    }
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
-    return tmp;
+    return pid;
 }
 
 int killBgProcess(DWORD pid) {
@@ -115,4 +125,19 @@ int resumeBgProcess(DWORD pid){
     CloseHandle(hThreadSnapshot);
     return 1;
 }
-
+DWORD inputHandleThread(){
+    DWORD cNumRead;
+    INPUT_RECORD buffer[128];
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    while(TRUE){
+        if (!ReadConsoleInput(hStdin, buffer, 128, &cNumRead))
+            return 1;
+        for (int i=0;i<cNumRead;i++){
+            if (buffer[i].EventType == KEY_EVENT){
+                KEY_EVENT_RECORD ker = buffer[i].Event.KeyEvent;
+                if (ker.bKeyDown && ker.wVirtualKeyCode == 27) return 1;
+                break;
+            }
+        }
+    }
+}

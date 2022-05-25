@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include "analysis.h"
 void tiny_shell();
-
 int main(int agvc, char *arg[]){
     tiny_shell();
     return 0;

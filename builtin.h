@@ -172,7 +172,7 @@ int pc(char **args){
             }
         }   
         if(flag == -1)
-            printf(" can't %s process of process %d\n", op, atoi(args[2]));
+            printf(" can't %s process %d\n", op, atoi(args[2]));
         else if(flag == -2) 
             printf(" pid is type of USIGNED INT\n");
         
