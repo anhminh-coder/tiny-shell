@@ -1,19 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include <unistd.h>
-#include <tchar.h>
-#include <psapi.h>
-#include <wchar.h>
 #include "builtin.h"
-#define TOKEN_DELIM " \t"
 
 char *read_line();
 char **split_line(char *line);
 int excute(char **args);
-
-void AnalysisCommand(char **args);
-
 char *read_line(){
     int buffer_size = 32;
     char *str;
@@ -63,6 +55,7 @@ int excute(char **args){
             return (*builtin_func[i])(args);
         }
     }
+
     printf("command not found.\n");
     return 1;
 }

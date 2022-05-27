@@ -1,8 +1,9 @@
 #include<stdio.h>
 #include<windows.h>
 #include "process.h"
-
+LPSTR get_current_dir();
 int pc_op(char *pid, int (*op)(DWORD pid));
+int exc(char **args);
 int help(char **args);
 int fexit(char **args);
 int path(char **args);
@@ -14,44 +15,50 @@ int list_path();
 int add_path(char **args);
 int num_builtins();
 
+int (*builtin_func[]) (char **args) = {&pc, &exc, &path, &date, &ftime, &dir, &help, &fexit};
+char *builtin_str[] = {"pc", "exc",  "path", "date", "time", "dir", "help", "exit"};
 
-int (*builtin_func[]) (char **args) = {&pc, &path, &date, &ftime, &dir, &help, &fexit};
-char *builtin_str[] = {"pc", "path", "date", "time", "dir", "help", "exit"};
+LPSTR get_current_dir(){
+    LPSTR cur_dir = (char *)calloc(MAX_PATH, sizeof(char));
+    GetCurrentDirectory(MAX_PATH, cur_dir);
+    cur_dir = strcat(cur_dir, "\\");
+    return cur_dir;
+}
+
 int num_builtins(){
     return sizeof(builtin_str)/sizeof(char *);
 }
 int date(char **args){
     if(args[1]!=NULL){
-        printf("no option for date command.\n");
-    }else{
-        SYSTEMTIME st, lt;
-        GetSystemTime(&st);
-        GetLocalTime(&lt);
-        printf(" UTC date: %02d/%02d/%04d\n", st.wDay, st.wMonth, st.wYear);
-        printf(" Local date: %02d/%02d/%04d\n", lt.wDay, lt.wMonth, lt.wYear);
+        printf(" no option for date command.\n");
+        return 1;
     }
+    SYSTEMTIME st, lt;
+    GetSystemTime(&st);
+    GetLocalTime(&lt);
+    printf(" UTC date: %02d/%02d/%04d\n", st.wDay, st.wMonth, st.wYear);
+    printf(" Local date: %02d/%02d/%04d\n", lt.wDay, lt.wMonth, lt.wYear);
     return 1;
 }
 int ftime(char **args){
     if(args[1]!=NULL){
-        printf("no option for time command.\n");
-    }else{
-        SYSTEMTIME st, lt;
-        GetSystemTime(&st);
-        GetLocalTime(&lt);
-        printf(" UTC time: %02d:%02d:%02d.%04d\n", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
-        printf(" Local time: %02d:%02d:%02d.%04d\n", lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
+        printf(" no option for time command.\n");
+        return 1;
     }
+    SYSTEMTIME st, lt;
+    GetSystemTime(&st);
+    GetLocalTime(&lt);
+    printf(" UTC time: %02d:%02d:%02d.%04d\n", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+    printf(" Local time: %02d:%02d:%02d.%04d\n", lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
     return 1;
 }
 int dir(char **args){
     if(args[1]!=NULL){
-        printf("no option for dir command.\n");
+        printf(" no option for dir command.\n");
         return 1;
     }
-    LPSTR cur_dir = (char *)calloc(MAX_PATH, sizeof(char));
-    GetCurrentDirectory(MAX_PATH, cur_dir);
-    cur_dir = strcat(cur_dir, "\\*");
+    LPSTR cur_dir = get_current_dir();
+    cur_dir = strcat(cur_dir, "*");
     WIN32_FIND_DATA data;
     HANDLE h = FindFirstFile(cur_dir, &data);
 	if (h != INVALID_HANDLE_VALUE){
@@ -66,7 +73,7 @@ int dir(char **args){
 }
 int path(char **args){
     if(args[1] == NULL){
-        printf("too few args.\n");
+        printf(" too few args.\n");
         return 1;
     }
     if(strcmp(args[1], "-all") == 0){
@@ -78,20 +85,52 @@ int path(char **args){
 }
 int fexit(char **args){
     if(args[1]!=NULL){
-        printf("no option for exit command.\n");
+        printf(" no option for exit command.\n");
         return 1;
     }
+    DWORD current_id = GetCurrentProcessId();
+    HANDLE hProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	PROCESSENTRY32 processEntry;
+	processEntry.dwSize = sizeof(PROCESSENTRY32);
+    do{
+    	if(processEntry.th32ParentProcessID == current_id)
+            killBgProcess(processEntry.th32ProcessID);
+    }while (Process32Next(hProcessSnapshot, &processEntry));
     return 0;
 }
 int help(char **args){
     if(args[1]!=NULL){
-        printf("no option for help command.\n");
+        printf(" no option for help command.\n");
         return 1;
     }
     printf("Tiny Shell\n");
     for(int i=0;i<num_builtins();i++){
         printf("\t%s\n", builtin_str[i]);
     }
+    return 1;
+}
+int exc(char **args){
+    if(args[2]!=NULL){
+        printf(" no option for execute command.\n");
+        return 1;
+    }
+    char *file_name = (char *)malloc(256);
+    file_name = strcpy(file_name, args[1]);
+    char *file_ext = strrchr(args[1], '.');
+    if(strcmp(file_ext, ".bat") != 0 || file_ext == NULL){
+        printf(" can only excute batch file\n");
+        return 1;
+    }
+    char full[256];
+    file_name = _fullpath( full, file_name, 256); 
+    FILE *fp;
+    fp = fopen(args[1], "r");
+    if(fp == NULL){
+        printf(" can't open or doesn't exist %s\n", args[1]);
+        return 1;
+    }
+    ShellExecuteA(NULL, "open", file_name, NULL, NULL, SW_SHOW);
+    fclose(fp);
     return 1;
 }
 int list_path(){

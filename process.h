@@ -1,11 +1,6 @@
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include <time.h>
-#include <tchar.h>
-#include <wchar.h>
-#include <psapi.h>
 #include <tlhelp32.h>
 #include <sys/types.h>
 
