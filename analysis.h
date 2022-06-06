@@ -1,7 +1,11 @@
+#pragma once
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include "builtin.h"
+
+extern int (*builtin_func[]) (char **args);
+extern char *builtin_str[];
+extern int num_builtins();
 
 char *read_line();
 char **split_line(char *line);

@@ -1,6 +1,8 @@
 #include <windows.h>
 #include <stdio.h>
 #include "analysis.h"
+#include "process.h"
+#include "builtin.h"
 void tiny_shell();
 int main(int agvc, char *arg[]){
     tiny_shell();
