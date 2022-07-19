@@ -7,8 +7,8 @@
 
 DWORD inputHandleThread();
 DWORD createProcess(char **args);
-int resumeBgProcess();
 int listAllProcess();
+int resumeBgProcess(DWORD pid);
 int listChildProcess(DWORD pid);
 int killBgProcess(DWORD pid);
 int stopBgProcess(DWORD pid);
@@ -17,14 +17,11 @@ int listAllProcess(){
 	HANDLE hProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 processEntry;
 	processEntry.dwSize = sizeof(PROCESSENTRY32);
-	if(!Process32First(hProcessSnapshot,&processEntry))	
-	{
-		return -1;
-	}
+	if(!Process32First(hProcessSnapshot,&processEntry))	return -1;
 	
-	printf(" %-15s %s\n", "[Process ID]", "[Process Name]");  
+	printf("%-15s %-15s %s\n", "[ParentID]", "[Process ID]", "[Process Name]");
     do{
-    	printf(" %-15d %s\n", processEntry.th32ProcessID, processEntry.szExeFile);
+    	printf("%-15d %-15d %s\n", processEntry.th32ParentProcessID, processEntry.th32ProcessID, processEntry.szExeFile);
     }while (Process32Next(hProcessSnapshot, &processEntry));
     CloseHandle(hProcessSnapshot);
 	return 1;
@@ -34,13 +31,11 @@ int listChildProcess(DWORD pid){ // pc -child parentId
 	PROCESSENTRY32 processEntry;
 	processEntry.dwSize = sizeof(PROCESSENTRY32);
 	if(!Process32First(hProcessSnapshot,&processEntry))	return -1;
-
     printf(" %-15s %s\n", "[Process ID]", "[Process Name]");  
     do{
         if(processEntry.th32ParentProcessID == pid)
     	 printf(" %-15d %s\n", processEntry.th32ProcessID, processEntry.szExeFile);
     }while (Process32Next(hProcessSnapshot, &processEntry));
-    
     CloseHandle(hProcessSnapshot);
 	return 1;
 }

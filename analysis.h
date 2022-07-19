@@ -6,10 +6,10 @@
 extern int (*builtin_func[]) (char **args);
 extern char *builtin_str[];
 extern int num_builtins();
-
 char *read_line();
 char **split_line(char *line);
 int excute(char **args);
+
 char *read_line(){
     int buffer_size = 32;
     char *str;
@@ -60,6 +60,6 @@ int excute(char **args){
         }
     }
 
-    printf("command not found.\n");
+    printf(" command not found\n");
     return 1;
 }

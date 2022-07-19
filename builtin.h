@@ -2,6 +2,9 @@
 #include<stdio.h>
 #include<windows.h>
 #include "process.h"
+
+LPSTR current_dir;
+
 LPSTR get_current_dir();
 int pc_op(char *pid, int (*op)(DWORD pid));
 int exc(char **args);
@@ -14,24 +17,25 @@ int dir(char **args);
 int pc(char **args);
 int list_path();
 int add_path(char **args);
+int cd(char **args);
 int num_builtins();
 
-int (*builtin_func[]) (char **args) = {&pc, &exc, &path, &date, &ftime, &dir, &help, &fexit};
-char *builtin_str[] = {"pc", "exc",  "path", "date", "time", "dir", "help", "exit"};
-
-LPSTR get_current_dir(){
-    LPSTR cur_dir = (char *)calloc(MAX_PATH, sizeof(char));
-    GetCurrentDirectory(MAX_PATH, cur_dir);
-    cur_dir = strcat(cur_dir, "\\");
-    return cur_dir;
-}
+int (*builtin_func[]) (char **args) = {cd, pc, exc, path, date, ftime, dir, help, fexit};
+char *builtin_str[] = {"cd", "pc", "exc",  "path", "date", "time", "dir", "help", "exit"};
 
 int num_builtins(){
     return sizeof(builtin_str)/sizeof(char *);
 }
+
+LPSTR get_current_dir(){
+    LPSTR current_dir = (char *)calloc(MAX_PATH, sizeof(char));
+    GetCurrentDirectory(MAX_PATH, current_dir);
+    return current_dir;
+}
+
 int date(char **args){
     if(args[1]!=NULL){
-        printf(" no option for date command.\n");
+        printf(" no option for date command\n");
         return 1;
     }
     SYSTEMTIME st, lt;
@@ -43,38 +47,62 @@ int date(char **args){
 }
 int ftime(char **args){
     if(args[1]!=NULL){
-        printf(" no option for time command.\n");
+        printf(" no option for time command\n");
         return 1;
     }
     SYSTEMTIME st, lt;
     GetSystemTime(&st);
     GetLocalTime(&lt);
-    printf(" UTC time: %02d:%02d:%02d.%04d\n", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
-    printf(" Local time: %02d:%02d:%02d.%04d\n", lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
+    printf(" UTC time: %02d:%02d:%02d.%02d\n", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+    printf(" Local time: %02d:%02d:%02d.%02d\n", lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
+    return 1;
+}
+LPSTR get_parent_dir(LPSTR current_dir) {
+    LPSTR dir = strcat(current_dir, "\\..");
+    return dir;
+}
+int cd(char** args) {
+    if (args[1] == NULL) return 1;
+    char* t = (char*)calloc(MAX_PATH, sizeof(char));
+    t = strcat(t, args[1]);
+    if (SetCurrentDirectory(t) == 0) {
+        printf(" cannot find the path specified\n");
+    }
+    free(t);
     return 1;
 }
 int dir(char **args){
     if(args[1]!=NULL){
-        printf(" no option for dir command.\n");
+        printf(" no option for dir command\n");
         return 1;
     }
-    LPSTR cur_dir = get_current_dir();
-    cur_dir = strcat(cur_dir, "*");
+    LPSTR path = (LPSTR)calloc(MAX_PATH, sizeof(char));
+    path = strcat(get_current_dir(), "//*");
     WIN32_FIND_DATA data;
-    HANDLE h = FindFirstFile(cur_dir, &data);
+    HANDLE h = FindFirstFile(path, &data);
 	if (h != INVALID_HANDLE_VALUE){
-        printf(" Directory of %s\n", cur_dir);
-        while(FindNextFileA(h, &data)){
-            if(data.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY)
-                printf("%9s %9s %s\n", "<DIR>", "", data.cFileName);
-            else printf("%9s %9d %s\n", "", data.nFileSizeLow, data.cFileName);
-        }
+        printf("\n Directory of %s\n\n", get_current_dir());
+        SYSTEMTIME st = { 0 };
+        LPFILETIME systemTime;
+        LPFILETIME localTime;
+        do{
+            systemTime = &data.ftLastWriteTime;
+            localTime;
+            FileTimeToLocalFileTime(systemTime, localTime);
+            FileTimeToSystemTime(localTime, &st);
+            if(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                printf("%02d/%02d/%d  %02d:%02d %s %9s %12s %s\n", st.wDay, st.wMonth, st.wYear, st.wHour%12, st.wMinute, (st.wHour>=12)?"PM":"AM", "<DIR>", "", data.cFileName);
+            else printf("%02d/%02d/%d  %02d:%02d %s %9s %12d %s\n", st.wDay, st.wMonth, st.wYear, st.wHour%12, st.wMinute, (st.wHour>=12)?"PM":"AM", "", data.nFileSizeLow , data.cFileName);
+        } while (FindNextFileA(h, &data));
+        free(systemTime);
+        free(localTime);
 	}
+    printf("\n");
     return 1;
 }
 int path(char **args){
     if(args[1] == NULL){
-        printf(" too few args.\n");
+        printf(" too few args\n");
         return 1;
     }
     if(strcmp(args[1], "-all") == 0){
@@ -86,7 +114,7 @@ int path(char **args){
 }
 int fexit(char **args){
     if(args[1]!=NULL){
-        printf(" no option for exit command.\n");
+        printf(" no option for exit command\n");
         return 1;
     }
     DWORD current_id = GetCurrentProcessId();
@@ -97,11 +125,12 @@ int fexit(char **args){
     	if(processEntry.th32ParentProcessID == current_id)
             killBgProcess(processEntry.th32ProcessID);
     }while (Process32Next(hProcessSnapshot, &processEntry));
+    CloseHandle(hProcessSnapshot);
     return 0;
 }
 int help(char **args){
     if(args[1]!=NULL){
-        printf(" no option for help command.\n");
+        printf(" no option for help command\n");
         return 1;
     }
     printf("Tiny Shell\n");
@@ -112,7 +141,7 @@ int help(char **args){
 }
 int exc(char **args){
     if(args[2]!=NULL){
-        printf(" no option for execute command.\n");
+        printf(" no option for execute command\n");
         return 1;
     }
     char *file_name = (char *)malloc(256);
@@ -122,8 +151,8 @@ int exc(char **args){
         printf(" can only excute batch file\n");
         return 1;
     }
-    char full[256];
-    file_name = _fullpath( full, file_name, 256); 
+    char* full = (char*)calloc(MAX_PATH, sizeof(char));
+    file_name = _fullpath(full, file_name, 256); 
     FILE *fp;
     fp = fopen(args[1], "r");
     if(fp == NULL){
@@ -148,6 +177,7 @@ int list_path(){
             var += lstrlen(var) + 1;
         }
     }
+    free(var);
     return 1;
 }
 int add_path(char **args){
@@ -159,12 +189,12 @@ int add_path(char **args){
         lp_value = args[3];
         if(SetEnvironmentVariable(lp_name, lp_value)){
             printf(" added (%s: %s)\n", lp_name, lp_value);
-            free(lp_name);
-            free(lp_value);
         }else{
             printf(" error\n");
         }
     }
+    free(lp_name);
+    free(lp_value);
     return 1;
 }
 
@@ -214,7 +244,7 @@ int pc(char **args){
         if(flag == -1)
             printf(" can't %s process %d\n", op, atoi(args[2]));
         else if(flag == -2) 
-            printf(" pid is type of USIGNED INT\n");
+            printf(" pid is of type USIGNED INT\n");
         
     }else printf(" syntax error\n");
     return 1;
