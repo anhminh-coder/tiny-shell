@@ -21,4 +21,4 @@ path -all
 path -add <name> <value>
 ```
 #### Other command
-`date`, `time`, `help`, `exit`
+`date`, `time`, `help`, `exit`, `cd`
