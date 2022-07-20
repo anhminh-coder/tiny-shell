@@ -2,6 +2,7 @@
 #include<stdio.h>
 #include<windows.h>
 #include "process.h"
+#include <wchar.h>
 
 LPSTR current_dir;
 
@@ -22,6 +23,7 @@ int num_builtins();
 
 int (*builtin_func[]) (char **args) = {cd, pc, exc, path, date, ftime, dir, help, fexit};
 char *builtin_str[] = {"cd", "pc", "exc",  "path", "date", "time", "dir", "help", "exit"};
+char *daysOfWeek[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
 int num_builtins(){
     return sizeof(builtin_str)/sizeof(char *);
@@ -41,8 +43,9 @@ int date(char **args){
     SYSTEMTIME st, lt;
     GetSystemTime(&st);
     GetLocalTime(&lt);
-    printf(" UTC date: %02d/%02d/%04d\n", st.wDay, st.wMonth, st.wYear);
-    printf(" Local date: %02d/%02d/%04d\n", lt.wDay, lt.wMonth, lt.wYear);
+    printf(" UTC date: %s-%02d/%02d/%04d\n", daysOfWeek[st.wDayOfWeek], st.wDay, st.wMonth, st.wYear);
+    printf(" Local date: %s-%02d/%02d/%04d\n", daysOfWeek[lt.wDayOfWeek], lt.wDay, lt.wMonth, lt.wYear);
+
     return 1;
 }
 int ftime(char **args){
@@ -56,10 +59,6 @@ int ftime(char **args){
     printf(" UTC time: %02d:%02d:%02d.%02d\n", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
     printf(" Local time: %02d:%02d:%02d.%02d\n", lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
     return 1;
-}
-LPSTR get_parent_dir(LPSTR current_dir) {
-    LPSTR dir = strcat(current_dir, "\\..");
-    return dir;
 }
 int cd(char** args) {
     if (args[1] == NULL) return 1;
@@ -87,17 +86,18 @@ int dir(char **args){
         LPFILETIME localTime;
         do{
             systemTime = &data.ftLastWriteTime;
-            localTime;
             FileTimeToLocalFileTime(systemTime, localTime);
-            FileTimeToSystemTime(localTime, &st);
+            FileTimeToSystemTime(&data.ftLastWriteTime, &st);
             if(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 printf("%02d/%02d/%d  %02d:%02d %s %9s %12s %s\n", st.wDay, st.wMonth, st.wYear, st.wHour%12, st.wMinute, (st.wHour>=12)?"PM":"AM", "<DIR>", "", data.cFileName);
-            else printf("%02d/%02d/%d  %02d:%02d %s %9s %12d %s\n", st.wDay, st.wMonth, st.wYear, st.wHour%12, st.wMinute, (st.wHour>=12)?"PM":"AM", "", data.nFileSizeLow , data.cFileName);
+            else {
+                DWORD64 fileSize = ((DWORD64)data.nFileSizeHigh<<32) | data.nFileSizeLow;
+                printf("%02d/%02d/%d  %02d:%02d %s %9s %12llu %s\n", st.wDay, st.wMonth, st.wYear, st.wHour % 12, st.wMinute, (st.wHour >= 12) ? "PM" : "AM", "", fileSize, data.cFileName);
+            }
         } while (FindNextFileA(h, &data));
-        free(systemTime);
-        free(localTime);
 	}
     printf("\n");
+    CloseHandle(h);
     return 1;
 }
 int path(char **args){
