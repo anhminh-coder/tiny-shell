@@ -2,9 +2,6 @@
 #include<stdio.h>
 #include<windows.h>
 #include "process.h"
-#include <wchar.h>
-
-LPSTR current_dir;
 
 LPSTR get_current_dir();
 int pc_op(char *pid, int (*op)(DWORD pid));
@@ -64,6 +61,12 @@ int cd(char** args) {
     if (args[1] == NULL) return 1;
     char* t = (char*)calloc(MAX_PATH, sizeof(char));
     t = strcat(t, args[1]);
+    int i = 2;
+    while (args[i] != NULL) {
+        t = strcat(t, " ");
+        t = strcat(t, args[i]);
+        i++;
+    }
     if (SetCurrentDirectory(t) == 0) {
         printf(" cannot find the path specified\n");
     }
@@ -89,10 +92,10 @@ int dir(char **args){
             FileTimeToLocalFileTime(systemTime, localTime);
             FileTimeToSystemTime(&data.ftLastWriteTime, &st);
             if(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-                printf("%02d/%02d/%d  %02d:%02d %s %9s %12s %s\n", st.wDay, st.wMonth, st.wYear, st.wHour%12, st.wMinute, (st.wHour>=12)?"PM":"AM", "<DIR>", "", data.cFileName);
+                printf("%02d/%02d/%d  %02d:%02d %s %9s %20s %s\n", st.wDay, st.wMonth, st.wYear, st.wHour%12, st.wMinute, (st.wHour>=12)?"PM":"AM", "<DIR>", "", data.cFileName);
             else {
                 DWORD64 fileSize = ((DWORD64)data.nFileSizeHigh<<32) | data.nFileSizeLow;
-                printf("%02d/%02d/%d  %02d:%02d %s %9s %12llu %s\n", st.wDay, st.wMonth, st.wYear, st.wHour % 12, st.wMinute, (st.wHour >= 12) ? "PM" : "AM", "", fileSize, data.cFileName);
+                printf("%02d/%02d/%d  %02d:%02d %s %9s %20llu %s\n", st.wDay, st.wMonth, st.wYear, st.wHour % 12, st.wMinute, (st.wHour >= 12) ? "PM" : "AM", "", fileSize, data.cFileName);
             }
         } while (FindNextFileA(h, &data));
 	}
