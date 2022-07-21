@@ -1,3 +1,8 @@
+```
+Dương Đình Luyện 20204666
+Nguyễn Đoàn Anh Minh 20204585
+Dương Đăng Vinh 20204706
+```
 # tiny-shell
 ## Run
 ```
